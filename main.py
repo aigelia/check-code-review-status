@@ -1,5 +1,4 @@
 import asyncio
-from pprint import pprint
 
 import httpx
 from aiogram import Bot, Dispatcher
@@ -19,16 +18,15 @@ async def poll_devman_api(bot: Bot, chat_id: int, api_key: str):
         while True:
             try:
                 response = await client.get(url, headers=headers, params=params, timeout=90)
-                data = response.json()
+                polling_result = response.json()
 
-                if data.get("status") == "found":
-                    pprint(data)
-                    await send_notification(bot, chat_id, data)
-                    params["timestamp"] = data.get("last_attempt_timestamp")
+                if polling_result.get("status") == "found":
+                    await send_notification(bot, chat_id, polling_result)
+                    params["timestamp"] = polling_result.get("last_attempt_timestamp")
 
-                elif data.get("status") == "timeout":
+                elif polling_result.get("status") == "timeout":
                     print("Новых данных нет")
-                    params["timestamp"] = data.get("timestamp_to_request")
+                    params["timestamp"] = polling_result.get("timestamp_to_request")
 
             except httpx.ConnectError:
                 print("Проблемы с соединением. Повторная попытка через 5 секунд...")
@@ -37,8 +35,8 @@ async def poll_devman_api(bot: Bot, chat_id: int, api_key: str):
                 continue
 
 
-async def send_notification(bot: Bot, chat_id: int, data: dict):
-    new_attempts = data.get("new_attempts")
+async def send_notification(bot: Bot, chat_id: int, polling_result: dict):
+    new_attempts = polling_result.get("new_attempts")
     if not new_attempts:
         await bot.send_message(chat_id, text="Обнаружена проверка, но деталей нет :(")
         return
