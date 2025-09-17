@@ -34,8 +34,7 @@ async def poll_devman_api(bot: Bot, chat_id: int, api_key: str):
                 print("Проблемы с соединением. Повторная попытка через 5 секунд...")
                 await asyncio.sleep(5)
             except httpx.ReadTimeout:
-                print("Сервер не отвечает. Повторный запрос через 5 секунд...")
-                await asyncio.sleep(5)
+                continue
 
 
 async def send_notification(bot: Bot, chat_id: int, data: dict):
