@@ -1,12 +1,11 @@
 import asyncio
+from functools import partial
 
 import httpx
 from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from environs import Env
-
-dp = Dispatcher()
 
 
 async def poll_devman_api(bot: Bot, chat_id: int, api_key: str):
@@ -51,7 +50,6 @@ async def send_notification(bot: Bot, chat_id: int, polling_result: dict):
     await bot.send_message(chat_id, text=text)
 
 
-@dp.message(CommandStart())
 async def command_start_handler(message: Message, allowed_chat_id: int):
     chat_id = message.chat.id
     if chat_id != allowed_chat_id:
@@ -60,7 +58,6 @@ async def command_start_handler(message: Message, allowed_chat_id: int):
         await message.answer("Привет, Катя! Начинаю следить за твоими работами!")
 
 
-@dp.message()
 async def text_message_handler(message: Message, allowed_chat_id: int):
     chat_id = message.chat.id
     if chat_id != allowed_chat_id:
@@ -79,9 +76,17 @@ async def main():
     api_key = env.str("API_KEY")
 
     bot = Bot(token=tg_token)
+    dp = Dispatcher()
+
+    dp.message.register(
+        partial(command_start_handler, allowed_chat_id=allowed_chat_id),
+        CommandStart(),
+    )
+    dp.message.register(partial(text_message_handler, allowed_chat_id=allowed_chat_id))
 
     asyncio.create_task(poll_devman_api(bot, allowed_chat_id, api_key))
-    await dp.start_polling(bot, allowed_chat_id=allowed_chat_id)
+
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
