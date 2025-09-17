@@ -10,7 +10,7 @@ from environs import Env
 dp = Dispatcher()
 
 
-async def get_api_response(bot: Bot, chat_id: int, api_key: str):
+async def poll_devman_api(bot: Bot, chat_id: int, api_key: str):
     url = "https://dvmn.org/api/long_polling/"
     headers = {"Authorization": f"Token {api_key}"}
     params = {"timestamp": None}
@@ -83,7 +83,7 @@ async def main():
 
     bot = Bot(token=token)
 
-    asyncio.create_task(get_api_response(bot, allowed_chat_id, api_key))
+    asyncio.create_task(poll_devman_api(bot, allowed_chat_id, api_key))
     await dp.start_polling(bot, allowed_chat_id=allowed_chat_id)
 
 
