@@ -1,23 +1,18 @@
 import asyncio
 from pprint import pprint
 
-from aiogram import Bot, Dispatcher, html
+import httpx
+from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
 from aiogram.types import Message
-from environs import env
-import httpx
+from environs import Env
 
-env.read_env()
 dp = Dispatcher()
-TOKEN = env.str('TG_TOKEN')
-ALLOWED_CHAT_ID = env.int('ALLOWED_CHAT_ID')
 
 
-async def get_api_response(bot, chat_id):
+async def get_api_response(bot: Bot, chat_id: int, api_key: str):
     url = "https://dvmn.org/api/long_polling/"
-    headers = {
-        "Authorization": f"Token {env.str('API_KEY')}"
-    }
+    headers = {"Authorization": f"Token {api_key}"}
     params = {"timestamp": None}
 
     async with httpx.AsyncClient() as client:
@@ -43,10 +38,10 @@ async def get_api_response(bot, chat_id):
                 await asyncio.sleep(5)
 
 
-async def send_notification(bot, chat_id, data):
+async def send_notification(bot: Bot, chat_id: int, data: dict):
     new_attempts = data.get("new_attempts")
     if not new_attempts:
-        await bot.send_message(chat_id, text='Обнаружена проверка, но деталей нет :(')
+        await bot.send_message(chat_id, text="Обнаружена проверка, но деталей нет :(")
         return
     attempt = new_attempts[0]
 
@@ -60,28 +55,36 @@ async def send_notification(bot, chat_id, data):
 
 
 @dp.message(CommandStart())
-async def command_start_handler(message: Message):
+async def command_start_handler(message: Message, allowed_chat_id: int):
     chat_id = message.chat.id
-    if chat_id != ALLOWED_CHAT_ID:
-        await message.answer(f"Прости, но я проверяю только Катины домашние работы!")
+    if chat_id != allowed_chat_id:
+        await message.answer("Прости, но я проверяю только Катины домашние работы!")
     else:
-        await message.answer(f"Привет, Катя! Начинаю следить за твоими работами!")
+        await message.answer("Привет, Катя! Начинаю следить за твоими работами!")
 
 
 @dp.message()
-async def text_message_handler(message: Message):
+async def text_message_handler(message: Message, allowed_chat_id: int):
     chat_id = message.chat.id
-    if chat_id != ALLOWED_CHAT_ID:
-        await message.answer(f"Прости, но я проверяю только Катины домашние работы!")
+    if chat_id != allowed_chat_id:
+        await message.answer("Прости, но я проверяю только Катины домашние работы!")
     else:
-        text = 'Я слишком туп, чтобы что-то отвечать, но я жив и все еще слежу за твоими работами!'
-        await message.answer(text=text)
+        await message.answer(
+            "Я слишком туп, чтобы что-то отвечать, но я жив и все еще слежу за твоими работами!"
+        )
 
 
 async def main():
-    bot = Bot(token=TOKEN)
-    asyncio.create_task(get_api_response(bot, ALLOWED_CHAT_ID))
-    await dp.start_polling(bot)
+    env = Env()
+    env.read_env()
+    token = env.str("TG_TOKEN")
+    allowed_chat_id = env.int("ALLOWED_CHAT_ID")
+    api_key = env.str("API_KEY")
+
+    bot = Bot(token=token)
+
+    asyncio.create_task(get_api_response(bot, allowed_chat_id, api_key))
+    await dp.start_polling(bot, allowed_chat_id=allowed_chat_id)
 
 
 if __name__ == "__main__":
