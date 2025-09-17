@@ -77,11 +77,11 @@ async def text_message_handler(message: Message, allowed_chat_id: int):
 async def main():
     env = Env()
     env.read_env()
-    token = env.str("TG_TOKEN")
+    tg_token = env.str("TG_TOKEN")
     allowed_chat_id = env.int("ALLOWED_CHAT_ID")
     api_key = env.str("API_KEY")
 
-    bot = Bot(token=token)
+    bot = Bot(token=tg_token)
 
     asyncio.create_task(poll_devman_api(bot, allowed_chat_id, api_key))
     await dp.start_polling(bot, allowed_chat_id=allowed_chat_id)
